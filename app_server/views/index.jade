@@ -1,0 +1,10 @@
+extends layout
+
+block content
+  
+  h3= title
+  h5 Welcome to #{title}
+  div Tcp Server Port: 
+    span=tcp.port
+  div Udp Server Port: 
+    span=udp.port
