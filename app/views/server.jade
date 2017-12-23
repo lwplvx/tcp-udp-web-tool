@@ -1,0 +1,23 @@
+extends layout
+
+block content
+  
+  h3= title 
+  
+  div 
+    button(class="btn btn-info create-tcp-server" ) 创建Tcp服务器 
+ 
+
+block scripts
+  script.
+    $('.create-tcp-server').on('click',function(){
+
+      send('create-tcp-server');
+
+    });
+    $('.create-udp-server').on('click',function(){
+
+      send('create-udp-server');
+
+    });
+

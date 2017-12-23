@@ -1,12 +1,9 @@
 var net = require('net');
 
 var client = new net.Socket();
-
-
-
-
 var tcpClient = {
-    connect: function (port, host) { 
+
+    connect: function (port, host) {
         client.connect(port, host, function () {
 
             console.log('CONNECTED TO: ' + port + ':' + host);

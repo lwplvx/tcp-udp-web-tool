@@ -1,0 +1,67 @@
+extends layout
+
+block content
+  
+  h4= title 
+  div(class="row")
+    div(class="col-sm-3")
+      div(class="card")
+        div(class="card-block p-2")
+          div 目标IP:
+          input(type="text" class="form-control")        
+          div 目标端口:
+          input(type="number" class="form-control" min=8500 max=9000 )         
+          div 类型:
+          select(name="netType" class="form-control")
+            option(value="tcp") Tcp
+            option(value="udp") Udp
+          div(class="p-2")
+            button(class="btn btn-success btn-block mt-1") 创建
+          hr
+          div
+            div 发送计数
+            input(type="text" readonly=true class="form-control")              
+            div 接收计数
+            input(type="text" readonly=true class="form-control")             
+          div(class="p-2")
+            button(class="btn btn-info btn-block mt-1 mb-2") 清空计数 
+    div(class="col-sm-9")
+      div(class="card")
+        div(class="card-header") 发送区
+        div(class="card-block p-2")
+          div(class="d-block p-1")
+            input#autoSend(type="checkbox") 
+            label(for="autoSend") 自动发送: 间隔
+            span
+              input(type="number" class="" min=1 max=3600 ) 
+            span ms   
+            span(class="ml-auto") 
+              button(class="btn btn-info btn-sm mr-1") 发送            
+              button(class="btn btn-danger btn-sm disabled ml-1" disabled) 停止
+          div(class="d-block p-1")
+            input#sendHex(type="checkbox") 
+            label(for="sendHex") 按16进制  
+            input#sendFile(type="checkbox") 
+            label(for="sendFile") 发送文件  
+            input#sendEcho(type="checkbox") 
+            label(for="sendEcho") 发送接收到的数据 
+            span(class="ml-auto") 
+              button(class="btn btn-info btn-sm mr-1") 清空            
+              button(class="btn btn-default btn-sm disabled ml-1" disabled) 选项
+          div(class="p-2")
+            textarea#sendText(name="sendText",class="form-control" cols="30", rows="4") 
+      div(class="card mt-1")
+        div(class="card-header") 接收区
+        div(class="card-block p-2")
+          div(class="d-block p-1")  
+            span(class="ml-auto") 
+              button(class="btn btn-info btn-sm mr-1") 暂停显示            
+              button(class="btn btn-danger btn-sm disabled ml-1" disabled) 保存          
+            input#receiveHex(type="checkbox") 
+            label(for="receiveHex") 按16进制    
+            span(class="ml-auto") 
+              button(class="btn btn-info btn-sm mr-1") 清空            
+              button(class="btn btn-default btn-sm disabled ml-1" disabled) 选项
+          div(class="p-2")
+            textarea#sendText(name="sendText",class="form-control" cols="30", rows="4")
+          
