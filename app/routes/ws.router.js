@@ -1,5 +1,7 @@
 
 var WebSocket = require('ws');
+var tcpServer = require('../models/tcpServer');
+var udpServer = require('../models/udpServer');
 
 var wsRouter = {};
 wsRouter.group = [];
@@ -13,7 +15,11 @@ wsRouter.init = function (server) {
         ws.on('message', function incoming(data) {
 
             console.log(data, 'data  message');
-            ws.send(data + ' echo');
+
+            ws.send(JSON.stringify({
+                type: "echo",
+                data: `${data}`
+            }));  
 
             //wsRouter.group
             var conf = JSON.parse(data);
@@ -26,12 +32,33 @@ wsRouter.init = function (server) {
                             token: conf.token,
                             client: ws,
                         };
-                        wsRouter.group.push(groupItem);
+                        wsRouter.group.push(groupItem); 
+                        //加入服务器成功，服务器回复
                         var reMsg = {
                             type: "message",
                             data: `${conf.event}   ${conf.uid}-${conf.token}`
                         }
                         ws.send(JSON.stringify(reMsg));
+
+                        //给上线的客户端 发送当前 UDP 服务列表 
+                        udpServer.servers.forEach((serverItem) => {  
+                            var address = serverItem.address();
+                            var data = {
+                                type: 'message',
+                                data: 'udp server onListening: ' + address.address + ': ' + address.port
+                            };
+                            ws.send(JSON.stringify(data));  
+                        }); 
+
+                        //给上线的客户端 发送当前 TCP 服务列表 
+                        tcpServer.servers.forEach((serverItem) => { 
+                            var data = {
+                                type: 'message',
+                                data: 'tcp server onListening: ' + serverItem.address + ': ' + serverItem.port
+                            };
+                            ws.send(JSON.stringify(data));
+                        }); 
+
                         break;
                     case "tcp-server":
 
@@ -47,8 +74,12 @@ wsRouter.init = function (server) {
                 }
             }
             catch (e) {
-                ws.send(e);
+                console.log(e);
+                ws.send(JSON.stringify(e));
             }
+
+        });
+        ws.on('error', function () {
 
         });
     });
@@ -60,7 +91,7 @@ wsRouter.send = function (data) {
            * wss.clients获取所有链接的客户端
            */
     wss.clients.forEach(function each(client) {
-        client.send(data);  
-    }); 
+        client.send(data);
+    });
 }
 module.exports = wsRouter;
