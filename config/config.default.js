@@ -4,7 +4,7 @@
 const config = {};  
 
 config.minPort=8500;
-config.maxPort=9000;
-config.host='127.0.0.1';
+config.maxPort=9500;
+config.host='0.0.0.0';
  
 module.exports =  config;

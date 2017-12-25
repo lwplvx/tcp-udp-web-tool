@@ -3,6 +3,8 @@ var router = express.Router();
 var bodyParser = require('body-parser')
 var udpServer = require('../models/udpServer');
 var wsRouter = require('./ws.router');
+var wsMessage = require('../models/wsMessage');
+var wsMessageTypes = require('../models/wsMessageTypes');
 
 var app = express().use(bodyParser.json());
 
@@ -76,29 +78,39 @@ router.post('/:port', function (req, res) {
 });
 
 function onListening(server) {
-    var address = server.address();
-    console.log('udp server onListening: ' + address.address + ': ' + address.port);
-    var data = {
-        type: 'message',
-        data: 'udp server onListening: ' + address.address + ': ' + address.port
-    };
-    wsRouter.send(JSON.stringify(data));
+    var address = server.address(); 
+    
+    var wsData = new wsMessage();
+    wsData.type = wsMessageTypes.onListening;
+    wsData.protocol = 'udp';
+    wsData.address = address.address;
+    wsData.port = address.port; 
 
+    wsData.data = 'udp server onListening: ' + address.address + ': ' + address.port;
+
+    wsRouter.send(JSON.stringify(wsData));
+      
     server.on('message', (msg, rinfo) => { onMessage(server, msg, rinfo) });
 }
 
-function onMessage(server, msg, rinfo) {
-    console.log(`udp server onMessage:${msg} from ${rinfo.address}:${rinfo.port}`);
+function onMessage(server, data, rinfo) { 
 
     // 回发该数据，客户端将收到来自服务端的数据  
     //socket.send(msg, [offset, length,] port [, address] [, callback])
-    server.send('Udp ckient said "' + msg + '"', rinfo.port, rinfo.address);
+    server.send('Udp echo "' + data + '"', rinfo.port, rinfo.address);
+     
+    var address = server.address();
+    var wsData = new wsMessage();
+    wsData.type = wsMessageTypes.onData;
+    wsData.protocol = 'udp';
+    wsData.address = address.address;
+    wsData.port = address.port;
+    wsData.remoteAddress = rinfo.address;
+    wsData.remotePort = rinfo.port;
 
-    var data = {
-        type: 'data',
-        data: `udp server onMessage:${msg} from ${rinfo.address}:${rinfo.port}`
-    };
-    wsRouter.send(JSON.stringify(data));
+    wsData.data = '' + data;
+
+    wsRouter.send(JSON.stringify(wsData)); 
 
 }
 

@@ -9,8 +9,8 @@ var index = require('./app/routes/index');
 var users = require('./app/routes/users');
 var about = require('./app/routes/about');
 var client = require('./app/routes/client');
-var server = require('./app/routes/server');
-var udp = require('./app/routes/udp');
+var tcpServer = require('./app/routes/tcp.server.router');
+var udpServer = require('./app/routes/udp.server.router');
 
 var app = express();
 
@@ -35,8 +35,8 @@ app.use(function (req, res, next) {
 app.use('/', index);
 app.use('/users', users);
 app.use('/about', about);  
-app.use('/server', server);  
-app.use('/udp', udp);  
+app.use('/tcpServer', tcpServer);  
+app.use('/udpServer', udpServer);  
 app.use('/client', client);  
 
 
