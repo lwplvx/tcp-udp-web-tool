@@ -1,9 +1,10 @@
 var net = require('net');
 var config = require('../../config/config.default');
+var dictionary = require('../structures/dictionary');
 var host = config.host;
 
 var tcpServer = {
-    servers: [],
+    servers: new dictionary(),
     create: function (port, onListening, onConnected, error) {
         try {
 

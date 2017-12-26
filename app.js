@@ -8,7 +8,7 @@ var bodyParser = require('body-parser');
 var index = require('./app/routes/index');
 var users = require('./app/routes/users');
 var about = require('./app/routes/about');
-var client = require('./app/routes/client');
+var client = require('./app/routes/client.router');
 var tcpServer = require('./app/routes/tcp.server.router');
 var udpServer = require('./app/routes/udp.server.router');
 
@@ -35,10 +35,10 @@ app.use(function (req, res, next) {
 app.use('/', index);
 app.use('/users', users);
 app.use('/about', about);  
-app.use('/tcpServer', tcpServer);  
-app.use('/udpServer', udpServer);  
-app.use('/client', client);  
-
+app.use('/server/tcp', tcpServer);  
+app.use('/server/udp', udpServer);  
+app.use('/client', client);
+ 
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

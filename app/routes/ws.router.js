@@ -17,11 +17,14 @@ wsRouter.init = function (server) {
         ws.on('message', function incoming(data) {
 
             console.log(data, 'data  message');
-
-            ws.send(JSON.stringify({
-                type: "echo",
-                data: `${data}`
-            }));  
+            try { 
+                ws.send(JSON.stringify({
+                    type: "echo",
+                    data: `${data}`
+                }));  
+            } catch (e) {
+                console.log(e,'on message');
+            }
 
             /*
     serverList = 0x01,
@@ -52,30 +55,22 @@ wsRouter.init = function (server) {
                         ws.send(JSON.stringify(joinMessage));
 
                         //给上线的客户端 发送当前 UDP 服务列表 
-                        udpServer.servers.forEach((serverItem) => {  
-                            var address = serverItem.address();
-                             
-                            let data = new wsMessage();
-                            data.type = wsMessageTypes.serverList;
-                            data.protocol = 'tcp';
-                            data.address = address.address ;
-                            data.port = address.port;
+                        udpServer.servers.forEach((item) => {   
+                            let data = item.info;
+                            data.type = wsMessageTypes.serverList; 
 
-                            data.data = `udp server onListening ${address.address}:${address.port}`; 
+                           // data.data = `udp server onListening ${data.address}:${data.port}`; 
 
                             ws.send(JSON.stringify(data));  
                         }); 
 
                         //给上线的客户端 发送当前 TCP 服务列表 
-                        tcpServer.servers.forEach((serverItem) => { 
+                        tcpServer.servers.forEach((item) => { 
                               
-                            let data = new wsMessage();
-                            data.type = wsMessageTypes.serverList;
-                            data.protocol = 'udp';
-                            data.address = serverItem.address;
-                            data.port = serverItem.port;
+                            let data = item.info;
+                            data.type = wsMessageTypes.serverList;   
 
-                            data.data = `tcp server onListening ${serverItem.address}:${serverItem.port}`;
+                          //  data.data = `tcp server onListening ${data.address}:${data.port}`;
 
                             ws.send(JSON.stringify(data));   
                         }); 

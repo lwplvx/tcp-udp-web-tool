@@ -1,9 +1,10 @@
 
 var config = require('../../config/config.default');
 var dgram = require('dgram');
+var dictionary = require('../structures/dictionary');
 
 var udpServer = {
-    servers: [],
+    servers: new dictionary(),
     create: function (port, onListening, error) {
         try {
 

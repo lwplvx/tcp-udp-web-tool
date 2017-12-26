@@ -3,25 +3,22 @@ var router = express.Router();
 var bodyParser = require('body-parser')
 var udpServer = require('../models/udpServer');
 var wsRouter = require('./ws.router');
+var serverInfo = require('../models/serverInfo');
 var wsMessage = require('../models/wsMessage');
 var wsMessageTypes = require('../models/wsMessageTypes');
 
 var app = express().use(bodyParser.json());
 
 
+
+// udp server  begin --
+
 /* GET users listing. */
 router.get('/', function (req, res, next) {
     var arr = [];
-    udpServers.forEach((item) => {
-        var address = item.address();
-        var udpserver = {
-            type: "udp",
-            address: address.address,
-            port: address.port
-        };
-        arr.push(udpserver);
+    udpServer.servers.forEach((item) => {
+        arr.push(item.info);
     });
-
     res.json(arr);
 });
 
@@ -54,51 +51,53 @@ router.post('/:port', function (req, res) {
 
     udpServer.create(port, (server) => {
 
-        udpServer.servers.push(server);
-        var address = server.address();
-        var udpserver = {
-            type: "udp",
-            address: address.address,
-            port: address.port
-        };
+        var serverInfo = getServerInfo(server);
+        udpServer.servers.add(serverInfo.info.key, serverInfo);
+         
+        var wsData = serverInfo.info;
+        wsData.type = wsMessageTypes.onListening;   
+
+        wsData.data = 'udp server onListening: ' + wsData.address + ':' + wsData.port;
+
+        wsRouter.send(JSON.stringify(wsData));
 
         onListening(server);
-        res.header("Access-Control-Allow-Origin", "*");
-        res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
-        res.header("Access-Control-Allow-Headers", "X-Requested-With");
-        res.header('Access-Control-Allow-Headers', 'Content-Type');
 
-        res.json(udpserver);
+        res.json(serverInfo.info);
     }, (e) => {
         console.log(e);
         res.statusCode = 500;
         res.send(e);
-        });
+    });
 
 });
 
-function onListening(server) {
-    var address = server.address(); 
-    
-    var wsData = new wsMessage();
-    wsData.type = wsMessageTypes.onListening;
-    wsData.protocol = 'udp';
-    wsData.address = address.address;
-    wsData.port = address.port; 
+function getServerInfo(server) {
 
-    wsData.data = 'udp server onListening: ' + address.address + ': ' + address.port;
+    var address = server.address();
+    var udpS = new serverInfo(); 
+    udpS.info.protocol= "udp";
+    udpS.info.address=address.address;   // 监听的地址
+    udpS.info.port=address.port;   //  监听的 端口 
+    udpS.info.name= `${address.address}:${address.port}`; 
+    udpS.info.key= `${udpS.info.protocol}-${udpS.info.name}`;
+    udpS.server=server;
 
-    wsRouter.send(JSON.stringify(wsData));
-      
+    return udpS;
+}
+
+
+function onListening(server) { 
+
     server.on('message', (msg, rinfo) => { onMessage(server, msg, rinfo) });
 }
 
-function onMessage(server, data, rinfo) { 
+function onMessage(server, data, rinfo) {
 
     // 回发该数据，客户端将收到来自服务端的数据  
     //socket.send(msg, [offset, length,] port [, address] [, callback])
     server.send('Udp echo "' + data + '"', rinfo.port, rinfo.address);
-     
+
     var address = server.address();
     var wsData = new wsMessage();
     wsData.type = wsMessageTypes.onData;
@@ -110,7 +109,7 @@ function onMessage(server, data, rinfo) {
 
     wsData.data = '' + data;
 
-    wsRouter.send(JSON.stringify(wsData)); 
+    wsRouter.send(JSON.stringify(wsData));
 
 }
 
@@ -122,23 +121,16 @@ router.delete('/:port', function (req, res, next) {
         res.statusCode = 400;
         res.send('Error 400: user properties missing');
     }
-    var server;
-    var servers = [];
-    udpServers.forEach((item) => {
-        if (item.port == port) {
-            server = item;
-        }
-        else {
-            servers.push(item);
-
-        }
-    });
-    udpServers = servers;
+    var key = `udp-0.0.0.0:${port}`;
+    var server = udpServers.find(key);
     if (server) {
         server.close();
+        udpServers.remove(key);
     }
     res.json(true);
 });
+
+// udp server  begin ----
 
 
 module.exports = router;

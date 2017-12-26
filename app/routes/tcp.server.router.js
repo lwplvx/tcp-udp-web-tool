@@ -3,15 +3,23 @@ var router = express.Router();
 var bodyParser = require('body-parser')
 var tcpServer = require('../models/tcpServer');
 var wsRouter = require('./ws.router');
+var serverInfo = require('../models/serverInfo');
+var clientInfo = require('../models/clientInfo');
 var wsMessage = require('../models/wsMessage');
 var wsMessageTypes = require('../models/wsMessageTypes');
 
 var app = express()
     .use(bodyParser.json());
 
+// tcp server  begin --
+
 /* GET users listing. */
 router.get('/', function (req, res, next) {
-    res.json(tcpServer.servers);
+    var arr = [];
+    tcpServer.servers.forEach((item) => {
+        arr.push(item.info);
+    });
+    res.json(arr);
 });
 
 //GET /tcpServers/:id => 404
@@ -41,24 +49,17 @@ router.post('/:port', function (req, res) {
         res.send('Error 400: user properties missing');
     }
     tcpServer.create(port, (server) => {
-        var address = server.address();
-        var tcpserver = {
-            type: "tcp",
-            address: address.address,
-            port: address.port
-        };
-        tcpServer.servers.push(tcpserver);
+        var serverInfo = getServerInfo(server);
+        tcpServer.servers.add(serverInfo.info.key, serverInfo);
 
-        var data = new wsMessage();
+        var data = serverInfo.info;
         data.type = wsMessageTypes.onListening;
-        data.protocol = 'tcp';
-        data.remoteAddress = address.address;
-        data.remotePort = address.port;
-        data.data = 'tcp server onListening: ' + address.address + ': ' + address.port;
+
+        data.data = 'tcp server onListening: ' + data.address + ':' + data.port;
 
         wsRouter.send(JSON.stringify(data));
 
-        res.json(tcpServer);
+        res.json(serverInfo.info);
 
     }, onConnected, (e) => {
         console.log(e);
@@ -68,59 +69,123 @@ router.post('/:port', function (req, res) {
 
 });
 
-
-function onConnected(sock,server) {
-    var address = server.address(); 
-
-    var data = new wsMessage();
-    data.type = wsMessageTypes.onConnected;
-    data.protocol = 'tcp';
-    data.address = address.address;
-    data.port = address.port;  
-    data.remoteAddress = sock.remoteAddress;
-    data.remotePort = sock.remotePort;
-
-    data.data = 'tcp server onConnected: ' + sock.remoteAddress + ':' + sock.remotePort;
-     
-    wsRouter.send(JSON.stringify(data));
-    sock.on('data', (data) => { onData(data, sock, server) });
-    sock.on('close', (data) => { onClose(data, sock, server) });
+function getServerKey(server) {
+    var address = server.address();
+    return `tcp-${address.address}:${address.port}`;
+}
+function getClientKey(sock) {
+    return `client-${sock.remoteAddress}:${sock.remotePort}`;
 }
 
-function onData(data, sock,server) {
+function getServerInfo(server) {
+
+    var address = server.address();
+    var tcpS = new serverInfo();
+    tcpS.info.protocol = "tcp";
+    tcpS.info.address = address.address;   // 监听的地址
+    tcpS.info.port = address.port;   //  监听的 端口
+    tcpS.info.name = `${address.address}:${address.port}`;
+    tcpS.info.key = getServerKey(server);
+    tcpS.server = server;
+
+    return tcpS;
+}
+
+function onConnected(sock, server) {
+
+    var key = getServerKey(server);
+    var serverInfo = tcpServer.servers.find(key);
+    if (serverInfo) {
+        var data = serverInfo.info;
+
+        data.type = wsMessageTypes.onConnected;
+
+        var remote = new clientInfo();
+        remote.client = sock;
+        remote.info.key = getClientKey(sock);
+        remote.info.name = sock.remoteAddress + ':' + sock.remotePort;
+        remote.info.address = sock.remoteAddress;
+        remote.info.port = sock.remotePort;
+
+        serverInfo.clients.add(remote.info.key, remote);
+        data.remoteInfo = remote.info;
+
+        data.data = data.key + ' onConnected: ' + remote.info.name;
+
+        wsRouter.send(JSON.stringify(data));
+
+        sock.on('data', (data) => { onData(data, sock, server) });
+        sock.on('close', (data) => { onClose(data, sock, server) });
+    } else {
+        //错误消息
+
+    }
+
+
+}
+
+function onData(data, sock, server) {
     // 回发该数据，客户端将收到来自服务端的数据
     sock.write('tcp echo "' + data + '"');
-      
-    var address = server.address(); 
-    var wsData = new wsMessage();
-    wsData.type = wsMessageTypes.onData;
-    wsData.protocol = 'tcp';
-    wsData.address = address.address;
-    wsData.port = address.port;
-    wsData.remoteAddress = sock.remoteAddress;
-    wsData.remotePort = sock.remotePort;
+  
+    var key = getServerKey(server);
+    var serverInfo = tcpServer.servers.find(key);
+    if (serverInfo) {
+        var wsData = serverInfo.info;
+        wsData.type = wsMessageTypes.onData;
+        var remotekey = getClientKey(sock);
+        var remote = serverInfo.clients.find(remotekey);
+        if (remote) {  
+            wsData.remoteInfo = remote.info;
+ 
+            wsData.data = '' + data; 
 
-    wsData.data = '' + data;
+            wsRouter.send(JSON.stringify(wsData));
 
-    wsRouter.send(JSON.stringify(wsData));
+        } else {
+            //錯誤處理
+
+        }
+
+    } else {
+        //错误消息
+
+    }
+
 }
 
-function onClose(data, sock) {
+function onClose(data, sock, server) {
     console.log('tcp server onClose: ' + sock.remoteAddress + ' ' + sock.remotePort);
-      
-    var address = server.address();
-    var wsData = new wsMessage();
-    wsData.type = wsMessageTypes.onClose;
-    wsData.protocol = 'tcp';
-    wsData.address = address.address;
-    wsData.port = address.port;
-    wsData.remoteAddress = sock.remoteAddress;
-    wsData.remotePort = sock.remotePort;
-     
-    wsData.data = 'tcp server onClose: ' + sock.remoteAddress + ' ' + sock.remotePort;
 
-    wsRouter.send(JSON.stringify(wsData));
-     
+
+    var key = getServerKey(server);
+    var serverInfo = tcpServer.servers.find(key);
+    if (serverInfo) {
+        var data = serverInfo.info;
+        data.type = wsMessageTypes.onClose;
+        var remotekey = getClientKey(sock);
+        var remote = serverInfo.clients.find(remotekey);
+        if (remote) {
+            serverInfo.clients.remove(remote.info.key);
+
+            data.remoteInfo = remote.info;
+
+            data.data = 'tcp server onClose: ' + sock.remoteAddress + ' ' + sock.remotePort;
+
+
+            wsRouter.send(JSON.stringify(data));
+
+        } else {
+            //錯誤處理
+
+        }
+
+    } else {
+        //错误消息
+
+    }
+
+
 }
 
 
@@ -149,6 +214,8 @@ router.delete('/:port', function (req, res, next) {
     }
     res.json(true);
 });
+
+// tcp server  end ----
 
 
 module.exports = router;
