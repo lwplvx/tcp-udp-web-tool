@@ -5,8 +5,8 @@ var wsMessageTypes = {
     onConnected: 0x03,
     onData: 0x04,
     onClose: 0x05,
-    info: 0x06,
 
+    info: 0x06,
     error: 0xff,
 }
 

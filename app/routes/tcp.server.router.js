@@ -4,7 +4,7 @@ var bodyParser = require('body-parser')
 var tcpServer = require('../models/tcpServer');
 var wsRouter = require('./ws.router');
 var serverInfo = require('../models/serverInfo');
-var clientInfo = require('../models/clientInfo');
+var netInfo = require('../models/netInfo');
 var wsMessage = require('../models/wsMessage');
 var wsMessageTypes = require('../models/wsMessageTypes');
 
@@ -82,6 +82,7 @@ function getServerInfo(server) {
     var address = server.address();
     var tcpS = new serverInfo();
     tcpS.info.protocol = "tcp";
+    tcpS.info.mode = "server";
     tcpS.info.address = address.address;   // 监听的地址
     tcpS.info.port = address.port;   //  监听的 端口
     tcpS.info.name = `${address.address}:${address.port}`;
@@ -106,6 +107,8 @@ function onConnected(sock, server) {
         remote.info.name = sock.remoteAddress + ':' + sock.remotePort;
         remote.info.address = sock.remoteAddress;
         remote.info.port = sock.remotePort;
+        remote.info.protocol = 'tcp';
+        remote.info.mode = 'client';
 
         serverInfo.clients.add(remote.info.key, remote);
         data.remoteInfo = remote.info;

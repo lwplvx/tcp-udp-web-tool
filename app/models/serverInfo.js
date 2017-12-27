@@ -1,10 +1,11 @@
-var wsMessage=require('./wsMessage');
-var dictionary = require('../structures/dictionary');
+//var wsMessage=require('./wsMessage');
+//var dictionary = require('../structures/dictionary');
 
-function serverInfo() {  
-    this.info =new wsMessage();
-    this.clients=new dictionary(); 
-    this.server;
+//function serverInfo() {  
+//    this.info =new wsMessage();
+//    this.clients=new dictionary(); 
+//    this.server;
 
-};
-module.exports = serverInfo;
+//};
+
+//module.exports = serverInfo;

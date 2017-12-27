@@ -1,4 +1,5 @@
 var net = require('net');
+
 var dictionary = require('../structures/dictionary');
 
 

@@ -1,13 +1,15 @@
 
 function wsMessage() {
-    this.key = '';
-    this.name = '';
-    this.type = '';
-    this.protocol = '';
-    this.address = '';
-    this.port = 0; 
+
+    this.messageType;
+    this.protocol;
+    this.server;
+    this.client;
+
+    /*
+     server client 没有值的时候 这个值才可靠
+    */
     this.data = '';
-    this.remoteInfo={};
 
 };
 module.exports = wsMessage;
