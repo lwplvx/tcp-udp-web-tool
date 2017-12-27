@@ -1,6 +1,6 @@
 var net = require('net');
-var config = require('../../config/config.default');
-var dictionary = require('../structures/dictionary');
+var config = require('../../../config/config.default');
+var dictionary = require('../../structures/dictionary');
 var host = config.host;
 
 var tcpServer = {

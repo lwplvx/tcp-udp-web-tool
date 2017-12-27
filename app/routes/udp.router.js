@@ -1,22 +1,22 @@
 var express = require('express');
 var router = express.Router();
 var bodyParser = require('body-parser')
-var udpServer = require('../models/udpServer');
-var wsRouter = require('./ws.router');
-var serverInfo = require('../models/serverInfo');
+var udpClient = require('../models/net/udpClient');
+var wsRouter = require('./ws.router'); 
+var netItemClient = require('../models/netItemClient'); 
 var wsMessage = require('../models/wsMessage');
 var wsMessageTypes = require('../models/wsMessageTypes');
+var netProtocolTypes = require('../models/netProtocolTypes');
+
 
 var app = express().use(bodyParser.json());
-
-
-
+ 
 // udp server  begin --
 
 /* GET users listing. */
 router.get('/', function (req, res, next) {
     var arr = [];
-    udpServer.servers.forEach((item) => {
+    udpClient.clients.forEach((item) => {
         arr.push(item.info);
     });
     res.json(arr);
@@ -24,19 +24,19 @@ router.get('/', function (req, res, next) {
 
 //GET /udpServers/:id => 404
 router.get('/:port', function (req, res, next) {
-    var udpServer;
-    udpServers.forEach((item) => {
-        if (item.port == req.params.port) {
-            udpServer = item;
+    var udpItem;
+    udpClient.clients.forEach((item) => {
+        if (item.port === req.params.port) {
+            udpItem = item;
             return;
         }
     });
-    if (!udpServer) {
+    if (!udpItem) {
         res.statusCode = 404;
         return res.send('Error 404: No udpServer found')
     }
     //GET /udpServers/:id => 200
-    res.json(udpServer);
+    res.json(udpItem);
 });
 
 
@@ -49,21 +49,28 @@ router.post('/:port', function (req, res) {
         res.send('Error 400: user properties missing');
     }
 
-    udpServer.create(port, (server) => {
+    udpClient.create(port, (udp) => {
 
-        var serverInfo = getServerInfo(server);
-        udpServer.servers.add(serverInfo.info.key, serverInfo);
-         
-        var wsData = serverInfo.info;
-        wsData.type = wsMessageTypes.onListening;   
+        var netItem = getNetItem(udp);
+        var info = netItem.info;
 
-        wsData.data = 'udp server onListening: ' + wsData.address + ':' + wsData.port;
+        udpClient.clients.add(info.key, netItem);
 
-        wsRouter.send(JSON.stringify(wsData));
+        var wsMsg = new wsMessage();
 
-        onListening(server);
+        wsMsg.messageType = wsMessageTypes.onListening;   
 
-        res.json(serverInfo.info);
+        wsMsg.protocol = info.protocol;
+        wsMsg.client = info;
+
+        wsMsg.data = 'udp onListening: ' + info.address + ':' + info.port;
+
+        wsRouter.send(JSON.stringify(wsMsg));
+
+        onListening(udp);
+
+        res.json(info);
+
     }, (e) => {
         console.log(e);
         res.statusCode = 500;
@@ -72,20 +79,24 @@ router.post('/:port', function (req, res) {
 
 });
 
-function getServerInfo(server) {
+
+function getNetItem(server) {
 
     var address = server.address();
-    var udpS = new serverInfo(); 
-    udpS.info.protocol= "udp";
-    udpS.info.address=address.address;   // 监听的地址
-    udpS.info.port=address.port;   //  监听的 端口 
-    udpS.info.name= `${address.address}:${address.port}`; 
-    udpS.info.key= `${udpS.info.protocol}-${udpS.info.name}`;
-    udpS.server=server;
+    var item = new netItemClient();
+    var info = item.info;
+    // 有tcp udp 之分 所有要在这里赋值
+    info.protocol = netProtocolTypes.UDP;
+    info.address = address.address;   // 监听的地址
+    info.port = address.port;   //  监听的 端口
 
-    return udpS;
-}
+    info.name = `${info.address}:${info.port}`;
+    info.key = `${info.protocol}-${info.address}:${info.port}`;
 
+    item._socket = server;
+
+    return item;
+} 
 
 function onListening(server) { 
 

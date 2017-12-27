@@ -1,15 +1,16 @@
 
 var netProtocolTypes = require('./netProtocolTypes');
-
+ 
 function NetInfo() {
 
-    this.protocol = netProtocolTypes.UDP;
+    this.protocol = netProtocolTypes.unset;
     this.key = '';
     this.name = '';
     this.address = '';
     this.port = 0;
     this.data = '';
-    this.remoteInfo = new NetInfo();
+    
+    this.remoteInfo = {};
 
 };
 module.exports = NetInfo;

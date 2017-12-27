@@ -1,10 +1,11 @@
 
 var WebSocket = require('ws');
-var tcpServer = require('../models/tcpServer');
-var udpServer = require('../models/udpServer'); 
-var wsMessage = require('../models/wsMessage'); 
-var wsMessageTypes = require('../models/wsMessageTypes'); 
- 
+var tcpServer = require('../models/net/tcpServer');
+var udpClient = require('../models/net/udpClient');
+var wsMessage = require('../models/wsMessage');
+var wsMessageTypes = require('../models/wsMessageTypes');
+var netProtocolTypes = require('../models/netProtocolTypes');
+
 var wsRouter = {};
 wsRouter.group = [];
 
@@ -17,22 +18,17 @@ wsRouter.init = function (server) {
         ws.on('message', function incoming(data) {
 
             console.log(data, 'data  message');
-            try { 
-                ws.send(JSON.stringify({
-                    type: "echo",
-                    data: `${data}`
-                }));  
+            try {
+                var wsData = new wsMessage();
+                wsData.messageType = wsMessageTypes.info;
+                wsData.protocol = netProtocolTypes.Ws; //  'ws'; 
+                wsData.data = 'echo ' + data;
+                ws.send(JSON.stringify(wsData));
+
             } catch (e) {
-                console.log(e,'on message');
+                console.log(e, 'on message');
             }
 
-            /*
-    serverList = 0x01,
-    listening = 0x02,
-    data = 0x03,
-    info = 0x04,
-    error = 0x05
-            */
 
             //wsRouter.group
             var conf = JSON.parse(data);
@@ -45,35 +41,57 @@ wsRouter.init = function (server) {
                             token: conf.token,
                             client: ws,
                         };
-                        wsRouter.group.push(groupItem); 
+                        wsRouter.group.push(groupItem);
                         //加入服务器成功，服务器回复 
-                        let joinMessage = new wsMessage();
-                        joinMessage.type = wsMessageTypes.info;
-                        joinMessage.protocol = 'ws'; 
-                        joinMessage.data = `${conf.event}   ${conf.uid}-${conf.token}`; 
+                        let wsData = new wsMessage();
+                        wsData.type = wsMessageTypes.info;
+                        wsData.protocol = netProtocolTypes.Ws; //  'ws'; 
+                        wsData.data = `${conf.event} ${conf.uid}-${conf.token}`;
 
-                        ws.send(JSON.stringify(joinMessage));
+                        ws.send(JSON.stringify(wsData));
 
                         //给上线的客户端 发送当前 UDP 服务列表 
-                        udpServer.servers.forEach((item) => {   
-                            let data = item.info;
-                            data.type = wsMessageTypes.serverList; 
+                        udpClient.clients.forEach((item) => {
+                            var info = item.info;
+                            var wsData = new wsMessage();
+                            wsData.protocol = info.protocol;
 
-                           // data.data = `udp server onListening ${data.address}:${data.port}`; 
+                            wsData.messageType = wsMessageTypes.onListening;
 
-                            ws.send(JSON.stringify(data));  
-                        }); 
+                            wsData.client = info;
+                            wsData.data = `udp onListening ${info.address}:${info.port}`;
+
+                            ws.send(JSON.stringify(wsData));
+                        });
 
                         //给上线的客户端 发送当前 TCP 服务列表 
-                        tcpServer.servers.forEach((item) => { 
-                              
-                            let data = item.info;
-                            data.type = wsMessageTypes.serverList;   
+                        //   item 是 类型 netItemServer
+                        tcpServer.servers.forEach((serverItem) => {
+                            //发送 onListening  事件
+                            var info = serverItem.info;
+                            var wsData = new wsMessage();
+                            wsData.protocol = info.protocol;
+                            wsData.messageType = wsMessageTypes.onListening;
+                            wsData.server = info;
+                            //wsData.data = `tcp server onListening ${info.address}:${info.port}`;
 
-                          //  data.data = `tcp server onListening ${data.address}:${data.port}`;
+                            ws.send(JSON.stringify(wsData));
 
-                            ws.send(JSON.stringify(data));   
-                        }); 
+                            //发送 server 下的 clients  
+                            //  remoteClients 存的是 类型  clientItem 的对象
+                            serverItem.info.remoteClients.forEach((clientItem) => {
+
+                                var info = clientItem.info;
+                                var wsData = new wsMessage();
+                                wsData.protocol = info.protocol;
+                                wsData.messageType = wsMessageTypes.onConnected;
+                                wsData.client = info;
+                                //wsData.data = `tcp server onListening ${info.address}:${info.port}`;
+
+                                ws.send(JSON.stringify(wsData));
+
+                            });
+                        });
 
                         break;
                     case "tcp-server":
@@ -82,16 +100,16 @@ wsRouter.init = function (server) {
                     case "tcp-client":
                         break;
                     case "udp-listen":
-                        // udpServer.start(udpC.port, udpC00000000000000.host);
+                        // udpClient.start(udpC.port, udpC00000000000000.host);
                         break;
                     case "udp-client":
-                        // udpServer.start(udpC.port, udpC.host);
+                        // udpClient.start(udpC.port, udpC.host);
                         break;
                 }
             }
             catch (e) {
                 console.log(e);
-                ws.send(JSON.stringify(e));
+                //ws.send(JSON.stringify(e));
             }
 
         });

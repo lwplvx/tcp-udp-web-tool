@@ -8,9 +8,10 @@ var bodyParser = require('body-parser');
 var index = require('./app/routes/index');
 var users = require('./app/routes/users');
 var about = require('./app/routes/about');
-var client = require('./app/routes/client.router');
-var tcpServer = require('./app/routes/tcp.server.router');
-var udpServer = require('./app/routes/udp.server.router');
+
+var tcpClientController = require('./app/routes/tcp.client.router');
+var tcpServerController= require('./app/routes/tcp.server.router');
+var udpController = require('./app/routes/udp.router');
 
 var app = express();
 
@@ -34,10 +35,10 @@ app.use(function (req, res, next) {
 
 app.use('/', index);
 app.use('/users', users);
-app.use('/about', about);  
-app.use('/server/tcp', tcpServer);  
-app.use('/server/udp', udpServer);  
-app.use('/client', client);
+app.use('/about', about);
+app.use('/server/tcp', tcpServerController);
+app.use('/client/udp', udpController);
+app.use('/client/tcp', tcpClientController);
  
 
 // catch 404 and forward to error handler

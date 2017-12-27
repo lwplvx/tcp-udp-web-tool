@@ -1,5 +1,7 @@
 var wsMessageTypes = {
 
+    unset: 0x00,
+
     serverList: 0x01,
     onListening: 0x02,
     onConnected: 0x03,
