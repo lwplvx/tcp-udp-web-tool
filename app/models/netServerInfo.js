@@ -6,13 +6,13 @@ var dictionary = require('../structures/dictionary');
 function NetServerInfo() {
 
     // NetProtocolTypes .TCP .UDP
-    this.protocol = netProtocolTypes.TCP;
+    this.protocol = netProtocolTypes.TCP; 
     this.key = '';
     this.name = '';
     this.address = '';
     this.port = 0;
     this.data = '';
-    this.remoteInfo = {}; 
+    this.remoteInfo = {};   
 
     this.remoteAutoCloseSeconds = 30;
     this.remoteAutoClose = false; 

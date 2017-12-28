@@ -2,9 +2,7 @@ var express = require('express');
 var router = express.Router();
 var bodyParser = require('body-parser')
 var tcpServer = require('../models/net/tcpServer');
-var wsRouter = require('./ws.router');
-var netInfo = require('../models/netInfo');
-var netServerInfo = require('../models/netServerInfo');
+var wsRouter = require('./ws.router'); 
 var netItemServer = require('../models/netItemServer');
 var netItemClient = require('../models/netItemClient');
 
@@ -126,6 +124,8 @@ function onConnected(sock, server) {
         serverItem.info.remoteClients.add(remote.key, clientItem);
 
         wsMsg.client = remote;
+        // 告诉界面是连接到了哪个 服务器 
+        wsMsg.server = serverItem.info;
 
         wsMsg.data = serverItem.info.key + ' onConnected: ' + remote.name;
 
@@ -161,6 +161,7 @@ function onData(data, sock, server) {
 
             wsMsg.client.data = '' + data;
             wsMsg.data = '' + data;
+            wsMsg.protocol = netProtocolTypes.TCP;
 
             wsRouter.send(JSON.stringify(wsMsg));
 
